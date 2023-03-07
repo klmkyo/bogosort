@@ -9,6 +9,17 @@ fn generate_vec(n: usize, min: i32, max: i32) -> Vec<i32> {
     vec
 }
 
+trait Shuffle {
+    fn shuffle(&mut self);
+}
+
+// implement for all vector types
+impl<T> Shuffle for Vec<T> {
+    fn shuffle(&mut self) {
+        fastrand::shuffle(self);
+    }
+}
+
 // implementing bogosort with multithreading support
 fn main() {
     let n = 13;
@@ -21,7 +32,7 @@ fn main() {
 
     let mut handles = Vec::new();
 
-    let result: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
+    let result = Arc::new(Mutex::new(None));
 
     let start_time = Instant::now();
 
@@ -32,7 +43,7 @@ fn main() {
         handles.push(std::thread::spawn(move || {
             let mut shuffled = items.clone();
             loop {
-                fastrand::shuffle(&mut shuffled);
+                shuffled.shuffle();
                 if shuffled == sorted {
                     *result.lock().unwrap() = Some(shuffled);
                     break;
@@ -49,6 +60,8 @@ fn main() {
             new_result = res;
             break;
         }
+        // sleep for 5ms
+        std::thread::sleep(std::time::Duration::from_millis(5));
     }
 
     println!("Sorted: {:?}", new_result);
