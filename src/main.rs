@@ -11,7 +11,7 @@ fn generate_vec(n: usize, min: i32, max: i32) -> Vec<i32> {
 
 // implementing bogosort with multithreading support
 fn main() {
-    let n = 11;
+    let n = 13;
 
     let items = generate_vec(n, 0, 100);
     println!("Unsorted: {:?}", items);
@@ -21,32 +21,36 @@ fn main() {
 
     let mut handles = Vec::new();
 
-    let found = Arc::new(Mutex::new(false));
+    let result: Arc<Mutex<Option<Vec<i32>>>> = Arc::new(Mutex::new(None));
 
     let start_time = Instant::now();
 
     for _ in 0..8 {
         let items = items.clone();
-        let found = found.clone();
         let sorted = sorted.clone();
+        let result = result.clone();
         handles.push(std::thread::spawn(move || {
             let mut shuffled = items.clone();
             loop {
                 fastrand::shuffle(&mut shuffled);
                 if shuffled == sorted {
-                    let mut found = found.lock().unwrap();
-                    *found = true;
-                    return Some(shuffled);
-                } else if *found.lock().unwrap() {
-                    return None;
+                    *result.lock().unwrap() = Some(shuffled);
+                    break;
                 }
             }
         }));
     }
 
-    // get the first found sorted vector
-    let sorted = handles.into_iter().find_map(|h| h.join().unwrap());
+    let new_result: Vec<i32>;
 
-    println!("Sorted: {:?}", sorted);
+    // if one of the threads finds the sorted vector, we are done
+    loop {
+        if let Some(res) = result.lock().unwrap().clone() {
+            new_result = res;
+            break;
+        }
+    }
+
+    println!("Sorted: {:?}", new_result);
     println!("Time: {}s", start_time.elapsed().as_secs());
 }
