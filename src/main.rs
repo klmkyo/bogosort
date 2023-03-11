@@ -1,4 +1,4 @@
-use std::{sync::{Arc, Mutex}, time::Instant};
+use std::{sync::{Arc, Mutex, atomic::{self, AtomicBool}}, time::Instant};
 use clap::{Parser};
 
 // TODO!
@@ -32,6 +32,10 @@ impl<T> Shuffle for Vec<T> {
     }
 }
 
+enum Message {
+    Found(Vec<i32>),
+}
+
 // takes a vector, returns a sorted vector and the time it took to sort it
 fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, u128) {
 
@@ -41,6 +45,8 @@ fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, u128) {
 
     let mut handles = Vec::new();
 
+    let found = Arc::new(AtomicBool::new(false));
+
     let result = Arc::new(Mutex::new(None));
 
     let start_time = Instant::now();
@@ -48,32 +54,46 @@ fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, u128) {
     for _ in 0..8 {
         let items = items.clone();
         let sorted = sorted.clone();
+        let found = found.clone();
         let result = result.clone();
+        // let rx = rx.clone();
         handles.push(std::thread::spawn(move || {
             let mut shuffled = items;
             loop {
-                shuffled.shuffle();
-                if shuffled == sorted {
-                    *result.lock().unwrap() = Some(shuffled);
-                    break;
+                for _ in 0..500000 {
+                    shuffled.shuffle();
+                    if shuffled == sorted {
+                        *result.lock().unwrap() = Some(shuffled);
+                        found.store(true, atomic::Ordering::Relaxed);
+                        return;
+                    }
+                }
+                // if a sorted vector has already been found, we can stop
+                if found.load(atomic::Ordering::Relaxed) {
+                    return;
                 }
             }
         }));
     }
 
-    let new_result: Vec<i32>;
-
     // if one of the threads finds the sorted vector, we are done
-    loop {
-        if let Some(res) = result.lock().unwrap().clone() {
-            new_result = res;
-            break;
-        }
-        // sleep for 5ms
-        std::thread::sleep(std::time::Duration::from_millis(5));
+    // loop {
+    //     if let Some(res) = result.lock().unwrap().clone() {
+    //         new_result = res;
+    //         break;
+    //     }
+    //     // sleep for 5ms
+    //     std::thread::sleep(std::time::Duration::from_millis(5));
+    // }
+    
+    // join all threads
+    for handle in handles {
+        handle.join().unwrap();
     }
 
-    (new_result, start_time.elapsed().as_micros())
+    let result = result.lock().unwrap().clone().unwrap();
+
+    (result, start_time.elapsed().as_micros())
 }
 
 fn bogosort_singlethreaded(mut items: Vec<i32>) -> (Vec<i32>, u128) {
@@ -118,5 +138,4 @@ fn main() {
     if args.time {
         println!("{}", time_micros);
     }
-
 }
