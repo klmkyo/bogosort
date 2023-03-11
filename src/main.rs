@@ -1,6 +1,16 @@
 use std::{sync::{Arc, Mutex}, time::Instant};
 use clap::{Parser};
 
+// TODO!
+// if we want this piece of code to be imported as a library, we need to do something to
+// make the threads stop running when the sorted array has already been found
+// https://doc.rust-lang.org/std/sync/atomic/struct.AtomicBool.html
+// https://doc.rust-lang.org/book/ch20-03-graceful-shutdown-and-cleanup.html
+// https://www.reddit.com/r/rust/comments/nwbtsz/help_understanding_how_to_start_and_stop_threads/
+
+// also explore the idea of comparing each element with ord signs instead of comparing with the already
+// sorted vector. this will reduce memory usage, which is good.
+
 /// generates vector of n random numbers in range (min, max)
 fn generate_vec(n: usize, min: i32, max: i32) -> Vec<i32> {
     let mut vec = Vec::with_capacity(n);
@@ -104,7 +114,11 @@ fn main() {
         bogosort_multithreaded(vec)
     };
 
+
     if args.time {
         println!("{}", time_micros);
     }
+
+    std::thread::sleep(std::time::Duration::from_secs(10));
+
 }
