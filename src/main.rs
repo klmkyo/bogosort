@@ -1,4 +1,5 @@
-use std::{env, sync::{Arc, Mutex}, time::Instant};
+use std::{sync::{Arc, Mutex}, time::Instant};
+use clap::{Parser};
 
 /// generates vector of n random numbers in range (min, max)
 fn generate_vec(n: usize, min: i32, max: i32) -> Vec<i32> {
@@ -15,18 +16,16 @@ trait Shuffle {
 
 // implement for all vector types
 impl<T> Shuffle for Vec<T> {
+    #[inline(always)]
     fn shuffle(&mut self) {
         fastrand::shuffle(self);
     }
 }
 
-// implementing bogosort with multithreading support
-fn main() {
-    let n = 13;
+// takes a vector, returns a sorted vector and the time it took to sort it
+fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, Instant) {
 
-    let items = generate_vec(n, 0, 100);
-    println!("Unsorted: {:?}", items);
-
+    // first sort the vector so that we can compare it the bogosorted vector
     let mut sorted = items.clone();
     sorted.sort();
 
@@ -41,7 +40,7 @@ fn main() {
         let sorted = sorted.clone();
         let result = result.clone();
         handles.push(std::thread::spawn(move || {
-            let mut shuffled = items.clone();
+            let mut shuffled = items;
             loop {
                 shuffled.shuffle();
                 if shuffled == sorted {
@@ -64,6 +63,48 @@ fn main() {
         std::thread::sleep(std::time::Duration::from_millis(5));
     }
 
-    println!("Sorted: {:?}", new_result);
-    println!("Time: {}s", start_time.elapsed().as_secs());
+    (new_result, start_time)
+}
+
+fn bogosort_singlethreaded(mut items: Vec<i32>) -> (Vec<i32>, Instant) {
+    let start_time = Instant::now();
+    let mut sorted = items.clone();
+    sorted.sort();
+    loop {
+        items.shuffle();
+        if items == sorted {
+            break;
+        }
+    }
+    (items, start_time)
+}
+
+#[derive(Parser)]
+struct Args {
+    /// number of elements to sort
+    n: usize,
+
+    /// run singlethreaded
+    #[clap(short, long)]
+    singlethreaded: bool,
+
+    /// print the time it took to sort in microseconds
+    #[clap(short, long)]
+    time: bool,
+}
+
+fn main() {
+    let args = Args::parse();
+
+    let vec = generate_vec(args.n, 0, 1000);
+
+    let (_sorted, start_time) = if args.singlethreaded {
+        bogosort_singlethreaded(vec)
+    } else {
+        bogosort_multithreaded(vec)
+    };
+
+    if args.time {
+        println!("{}", start_time.elapsed().as_micros());
+    }
 }
