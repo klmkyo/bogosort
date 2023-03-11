@@ -23,7 +23,7 @@ impl<T> Shuffle for Vec<T> {
 }
 
 // takes a vector, returns a sorted vector and the time it took to sort it
-fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, Instant) {
+fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, u128) {
 
     // first sort the vector so that we can compare it the bogosorted vector
     let mut sorted = items.clone();
@@ -63,10 +63,10 @@ fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, Instant) {
         std::thread::sleep(std::time::Duration::from_millis(5));
     }
 
-    (new_result, start_time)
+    (new_result, start_time.elapsed().as_micros())
 }
 
-fn bogosort_singlethreaded(mut items: Vec<i32>) -> (Vec<i32>, Instant) {
+fn bogosort_singlethreaded(mut items: Vec<i32>) -> (Vec<i32>, u128) {
     let start_time = Instant::now();
     let mut sorted = items.clone();
     sorted.sort();
@@ -76,7 +76,7 @@ fn bogosort_singlethreaded(mut items: Vec<i32>) -> (Vec<i32>, Instant) {
             break;
         }
     }
-    (items, start_time)
+    (items, start_time.elapsed().as_micros())
 }
 
 #[derive(Parser)]
@@ -98,13 +98,13 @@ fn main() {
 
     let vec = generate_vec(args.n, 0, 1000);
 
-    let (_sorted, start_time) = if args.singlethreaded {
+    let (_sorted, time_micros) = if args.singlethreaded {
         bogosort_singlethreaded(vec)
     } else {
         bogosort_multithreaded(vec)
     };
 
     if args.time {
-        println!("{}", start_time.elapsed().as_micros());
+        println!("{}", time_micros);
     }
 }
