@@ -32,10 +32,6 @@ impl<T> Shuffle for Vec<T> {
     }
 }
 
-enum Message {
-    Found(Vec<i32>),
-}
-
 // takes a vector, returns a sorted vector and the time it took to sort it
 fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, u128) {
 
