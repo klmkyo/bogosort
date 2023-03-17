@@ -142,3 +142,59 @@ fn main() {
         println!("{}", time_micros);
     }
 }
+
+// code for finding the fastest seed
+// // multithreaded version
+// // find the fastest seed
+// let fastest_seed: Arc<Mutex<u64>> = Arc::new(Mutex::new(u64::MAX));
+// let fastest_time: Arc<Mutex<u128>> = Arc::new(Mutex::new(u128::MAX));
+
+// let mut handles = Vec::new();
+
+// let seed_num = 1000;
+
+// // pool of not yet used seeds
+// let seeds = Arc::new(Mutex::new(Vec::with_capacity(seed_num)));
+// {
+//     let mut seeds = seeds.lock().unwrap();
+//     for seed in 0..seed_num {
+//         seeds.push(seed as u64);
+//     }
+// }
+
+// for i in 0..4 {
+//     let seeds = seeds.clone();
+//     let fastest_seed = fastest_seed.clone();
+//     let fastest_time = fastest_time.clone();
+//     handles.push(std::thread::spawn(move || {
+//         loop {
+//             let seed = {
+//                 let mut seeds = seeds.lock().unwrap();
+//                 if seeds.len() == 0 {
+//                     return;
+//                 }
+//                 seeds.pop().unwrap()
+//             };
+
+//             fastrand::seed(seed);
+//             let vec = generate_vec(n, 0, 1000);
+//             let (_, time_micros) = bogosort_singlethreaded(vec);
+//             if time_micros < *fastest_time.lock().unwrap() {
+//                 *fastest_time.lock().unwrap() = time_micros;
+//                 *fastest_seed.lock().unwrap() = seed;
+
+//                 println!("\tFound faster seed!");
+//                 println!("\tseed: {}", seed);
+//                 println!("time: {}", time_micros);
+//             }
+
+//             print!("(i: {}, s: {}, t: {}) ", i, seed, time_micros);
+//             let _ = std::io::stdout().flush();
+//         }
+//     }));
+// }
+
+// // join all threads
+// for handle in handles {
+//     handle.join().unwrap();
+// }
