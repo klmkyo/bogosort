@@ -14,9 +14,7 @@ use clap::{Parser};
 /// generates vector of n random numbers in range (min, max)
 fn generate_vec(n: usize, min: i32, max: i32) -> Vec<i32> {
     let mut vec = Vec::with_capacity(n);
-    for _ in 0..n {
-        vec.push(rand::random::<i32>() % (max - min) + min);
-    }
+    vec.resize_with(n, || fastrand::i32(min..max));
     vec
 }
 
