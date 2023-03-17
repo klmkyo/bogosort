@@ -30,6 +30,18 @@ impl<T> Shuffle for Vec<T> {
     }
 }
 
+trait Sorted {
+    fn is_sorted(&self) -> bool;
+}
+
+// implement for all vector types
+impl<T: Ord> Sorted for Vec<T> {
+    #[inline(always)]
+    fn is_sorted(&self) -> bool {
+        self.windows(2).all(|w| w[0] <= w[1])
+    }
+}
+
 // takes a vector, returns a sorted vector and the time it took to sort it
 fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, u128) {
 
@@ -47,7 +59,6 @@ fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, u128) {
 
     for _ in 0..8 {
         let items = items.clone();
-        let sorted = sorted.clone();
         let found = found.clone();
         let result = result.clone();
         // let rx = rx.clone();
@@ -56,7 +67,7 @@ fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, u128) {
             loop {
                 for _ in 0..500000 {
                     shuffled.shuffle();
-                    if shuffled == sorted {
+                    if shuffled.is_sorted() {
                         *result.lock().unwrap() = Some(shuffled);
                         found.store(true, atomic::Ordering::Relaxed);
                         return;
@@ -92,11 +103,9 @@ fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, u128) {
 
 fn bogosort_singlethreaded(mut items: Vec<i32>) -> (Vec<i32>, u128) {
     let start_time = Instant::now();
-    let mut sorted = items.clone();
-    sorted.sort();
     loop {
         items.shuffle();
-        if items == sorted {
+        if items.is_sorted() {
             break;
         }
     }
