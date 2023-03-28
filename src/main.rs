@@ -1,5 +1,6 @@
 use std::{sync::{Arc, Mutex, atomic::{self, AtomicBool}}, time::Instant};
 use clap::{Parser};
+use itertools::Itertools;
 
 // TODO!
 // if we want this piece of code to be imported as a library, we need to do something to
@@ -38,7 +39,7 @@ trait Sorted {
 impl<T: Ord> Sorted for Vec<T> {
     #[inline(always)]
     fn is_sorted(&self) -> bool {
-        self.windows(2).all(|w| w[0] <= w[1])
+        self.iter().tuple_windows().all(|(a, b)| a <= b)
     }
 }
 
@@ -65,7 +66,7 @@ fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, u128) {
         handles.push(std::thread::spawn(move || {
             let mut shuffled = items;
             loop {
-                for _ in 0..500000 {
+                for _ in 0..10000 {
                     shuffled.shuffle();
                     if shuffled.is_sorted() {
                         *result.lock().unwrap() = Some(shuffled);
