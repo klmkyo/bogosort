@@ -2,16 +2,6 @@ use std::{sync::{Arc, Mutex, atomic::{self, AtomicBool}}, time::Instant};
 use clap::{Parser};
 use itertools::Itertools;
 
-// TODO!
-// if we want this piece of code to be imported as a library, we need to do something to
-// make the threads stop running when the sorted array has already been found
-// https://doc.rust-lang.org/std/sync/atomic/struct.AtomicBool.html
-// https://doc.rust-lang.org/book/ch20-03-graceful-shutdown-and-cleanup.html
-// https://www.reddit.com/r/rust/comments/nwbtsz/help_understanding_how_to_start_and_stop_threads/
-
-// also explore the idea of comparing each element with ord signs instead of comparing with the already
-// sorted vector. this will reduce memory usage, which is good.
-
 /// generates vector of n random numbers in range (min, max)
 fn generate_vec(n: usize, min: i32, max: i32) -> Vec<i32> {
     let mut vec = Vec::with_capacity(n);
@@ -66,14 +56,18 @@ fn bogosort_multithreaded(items: Vec<i32>) -> (Vec<i32>, u128) {
         handles.push(std::thread::spawn(move || {
             let mut shuffled = items;
             loop {
-                for _ in 0..10000 {
-                    shuffled.shuffle();
-                    if shuffled.is_sorted() {
-                        *result.lock().unwrap() = Some(shuffled);
-                        found.store(true, atomic::Ordering::Relaxed);
-                        return;
-                    }
+                // to my testing, putting it in a for loop does not make it faster
+                // but it does make the threads live longer than they have to,
+                // thus making the program slower
+                
+                // for _ in 0..10000 {
+                shuffled.shuffle();
+                if shuffled.is_sorted() {
+                    *result.lock().unwrap() = Some(shuffled);
+                    found.store(true, atomic::Ordering::Relaxed);
+                    return;
                 }
+                // }
                 // if a sorted vector has already been found, we can stop
                 if found.load(atomic::Ordering::Relaxed) {
                     return;
